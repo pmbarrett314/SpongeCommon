@@ -22,29 +22,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.registry.type.boss;
+package org.spongepowered.common.registry;
 
-import net.minecraft.world.BossInfo;
-import org.spongepowered.api.boss.BossBarColor;
-import org.spongepowered.api.boss.BossBarColors;
-import org.spongepowered.api.registry.util.AdditionalRegistration;
-import org.spongepowered.api.registry.util.RegisterCatalog;
-import org.spongepowered.common.registry.type.MinecraftEnumBasedCatalogTypeModule;
+import org.apache.commons.lang3.text.WordUtils;
+import org.spongepowered.api.CatalogKey;
 
-@RegisterCatalog(BossBarColors.class)
-public final class BossBarColorRegistryModule extends MinecraftEnumBasedCatalogTypeModule<BossInfo.Color, BossBarColor> {
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
-    @AdditionalRegistration
-    public void customRegistration() {
-        for (BossInfo.Color color : BossInfo.Color.values()) {
-            if (!this.map.containsKey(enumAs(color).getKey())) {
-                this.map.put(enumAs(color).getKey(), (BossBarColor) (Object) color);
-            }
+/**
+ * A special map for use in registry modules.
+ *
+ * @param <V> The value type
+ */
+public final class RegistryMap<V> extends HashMap<CatalogKey, V> {
+
+    /**
+     * Gets a value by its key.
+     *
+     * @param key The key
+     * @return The optional value
+     */
+    public Optional<V> getOptional(final CatalogKey key) {
+        return Optional.ofNullable(this.get(key));
+    }
+
+    /**
+     * Creates a copy of this map prepared for catalog field registration.
+     *
+     * @return A map of keys to values
+     */
+    public Map<String, V> forCatalogRegistration() {
+        final Map<String, V> map = new HashMap<>(this.size());
+        for (final Map.Entry<CatalogKey, V> entry : this.entrySet()) {
+            map.put(entry.getKey().getValue(), entry.getValue());
         }
+        return map;
     }
 
     @Override
-    protected BossInfo.Color[] getValues() {
-        return BossInfo.Color.values();
+    public Collection<V> values() {
+        return Collections.unmodifiableCollection(super.values());
+    }
+
+    public static String name(final CatalogKey key) {
+        return WordUtils.capitalize(key.getValue(), '_');
     }
 }

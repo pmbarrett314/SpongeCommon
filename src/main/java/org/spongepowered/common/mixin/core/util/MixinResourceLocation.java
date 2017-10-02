@@ -22,29 +22,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.registry.type.boss;
+package org.spongepowered.common.mixin.core.util;
 
-import net.minecraft.world.BossInfo;
-import org.spongepowered.api.boss.BossBarColor;
-import org.spongepowered.api.boss.BossBarColors;
-import org.spongepowered.api.registry.util.AdditionalRegistration;
-import org.spongepowered.api.registry.util.RegisterCatalog;
-import org.spongepowered.common.registry.type.MinecraftEnumBasedCatalogTypeModule;
+import net.minecraft.util.ResourceLocation;
+import org.spongepowered.api.CatalogKey;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 
-@RegisterCatalog(BossBarColors.class)
-public final class BossBarColorRegistryModule extends MinecraftEnumBasedCatalogTypeModule<BossInfo.Color, BossBarColor> {
+@Mixin(ResourceLocation.class)
+public class MixinResourceLocation implements CatalogKey {
 
-    @AdditionalRegistration
-    public void customRegistration() {
-        for (BossInfo.Color color : BossInfo.Color.values()) {
-            if (!this.map.containsKey(enumAs(color).getKey())) {
-                this.map.put(enumAs(color).getKey(), (BossBarColor) (Object) color);
-            }
-        }
+    @Final @Shadow protected String resourceDomain;
+    @Final @Shadow protected String resourcePath;
+
+    @Override
+    public String getNamespace() {
+        return this.resourceDomain;
     }
 
     @Override
-    protected BossInfo.Color[] getValues() {
-        return BossInfo.Color.values();
+    public String getValue() {
+        return this.resourcePath;
     }
 }

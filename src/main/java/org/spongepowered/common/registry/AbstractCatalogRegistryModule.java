@@ -22,29 +22,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.registry.type.boss;
+package org.spongepowered.common.registry;
 
-import net.minecraft.world.BossInfo;
-import org.spongepowered.api.boss.BossBarColor;
-import org.spongepowered.api.boss.BossBarColors;
-import org.spongepowered.api.registry.util.AdditionalRegistration;
-import org.spongepowered.api.registry.util.RegisterCatalog;
-import org.spongepowered.common.registry.type.MinecraftEnumBasedCatalogTypeModule;
+import org.spongepowered.api.CatalogKey;
+import org.spongepowered.api.CatalogType;
+import org.spongepowered.api.registry.AlternateCatalogRegistryModule;
 
-@RegisterCatalog(BossBarColors.class)
-public final class BossBarColorRegistryModule extends MinecraftEnumBasedCatalogTypeModule<BossInfo.Color, BossBarColor> {
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 
-    @AdditionalRegistration
-    public void customRegistration() {
-        for (BossInfo.Color color : BossInfo.Color.values()) {
-            if (!this.map.containsKey(enumAs(color).getKey())) {
-                this.map.put(enumAs(color).getKey(), (BossBarColor) (Object) color);
-            }
-        }
+public abstract class AbstractCatalogRegistryModule<C extends CatalogType> implements AlternateCatalogRegistryModule<C> {
+
+    protected final RegistryMap<C> map = new RegistryMap<>();
+
+    protected void register(final C value) {
+        this.map.put(value.getKey(), value);
     }
 
     @Override
-    protected BossInfo.Color[] getValues() {
-        return BossInfo.Color.values();
+    public final Optional<C> get(final CatalogKey key) {
+        return this.map.getOptional(key);
+    }
+
+    @Override
+    public final Collection<C> getAll() {
+        return this.map.values();
+    }
+
+    @Override
+    public final Map<String, C> provideCatalogMap() {
+        return this.map.forCatalogRegistration();
     }
 }

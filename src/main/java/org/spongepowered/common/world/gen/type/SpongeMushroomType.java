@@ -27,24 +27,25 @@ package org.spongepowered.common.world.gen.type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
+import org.spongepowered.api.CatalogKey;
 import org.spongepowered.api.world.gen.PopulatorObject;
 import org.spongepowered.api.world.gen.type.MushroomType;
 
 public class SpongeMushroomType implements MushroomType {
 
+    private final CatalogKey key;
     private final String name;
-    private final String id;
     private PopulatorObject obj;
 
-    public SpongeMushroomType(String id, String name, PopulatorObject o) {
-        this.id = id;
+    public SpongeMushroomType(final CatalogKey key, String name, PopulatorObject o) {
+        this.key = key;
         this.name = name;
         this.obj = o;
     }
 
     @Override
-    public String getId() {
-        return this.id;
+    public CatalogKey getKey() {
+        return this.key;
     }
 
     @Override

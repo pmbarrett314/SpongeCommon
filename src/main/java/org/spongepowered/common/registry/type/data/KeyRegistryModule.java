@@ -36,6 +36,7 @@ import static org.spongepowered.api.data.key.KeyFactory.makeSingleKey;
 
 import com.google.common.collect.MapMaker;
 import com.google.common.reflect.TypeToken;
+import org.spongepowered.api.CatalogKey;
 import org.spongepowered.api.data.DataQuery;
 import org.spongepowered.api.data.key.Key;
 import org.spongepowered.api.data.key.Keys;
@@ -64,7 +65,7 @@ public class KeyRegistryModule implements AdditionalCatalogRegistryModule<Key<?>
     private final Map<String, Key<?>> fieldMap = new MapMaker().concurrencyLevel(4).makeMap();
 
     // This map is the one used for catalog id lookups.
-    private final Map<String, Key<?>> keyMap = new MapMaker().concurrencyLevel(4).makeMap();
+    private final Map<CatalogKey, Key<?>> keyMap = new MapMaker().concurrencyLevel(4).makeMap();
 
     @Override
     public void registerDefaults() {
@@ -588,7 +589,7 @@ public class KeyRegistryModule implements AdditionalCatalogRegistryModule<Key<?>
         this.fieldMap.put("health_scale", makeSingleKey(TypeTokens.DOUBLE_TOKEN, TypeTokens.BOUNDED_DOUBLE_VALUE_TOKEN, of("HealthScale"), "sponge:health_scale", "Health Scale"));
 
         for (Key<?> key : this.fieldMap.values()) {
-            this.keyMap.put(key.getId().toLowerCase(Locale.ENGLISH), key);
+            this.keyMap.put(key.getKey(), key);
         }
 
     }
@@ -597,14 +598,14 @@ public class KeyRegistryModule implements AdditionalCatalogRegistryModule<Key<?>
     public void registerAdditionalCatalog(Key<?> extraCatalog) {
         checkState(!SpongeDataManager.areRegistrationsComplete(), "Cannot register new Keys after Data Registration has completed!");
         checkNotNull(extraCatalog, "Key cannot be null!");
-        final String id = extraCatalog.getId().toLowerCase(Locale.ENGLISH);
-        checkArgument(!id.startsWith("sponge:"), "A plugin is trying to register custom keys under the sponge id namespace! This is a fake key! " + id);
+        final CatalogKey id = extraCatalog.getKey();
+        checkArgument(!id.getNamespace().equals(CatalogKey.SPONGE_NAMESPACE), "A plugin is trying to register custom keys under the sponge id namespace! This is a fake key! " + id);
         this.keyMap.put(id, extraCatalog);
     }
 
     @Override
-    public Optional<Key<?>> getById(String id) {
-        return Optional.ofNullable(this.keyMap.get(id));
+    public Optional<Key<?>> get(final CatalogKey key) {
+        return Optional.ofNullable(this.keyMap.get(key));
     }
 
     @Override
@@ -641,8 +642,8 @@ public class KeyRegistryModule implements AdditionalCatalogRegistryModule<Key<?>
         }
 
         @Override
-        public String getId() {
-            return "sponge:banner_patterns";
+        public CatalogKey getKey() {
+            return CatalogKey.sponge("banner_patterns");
         }
 
         @Override
