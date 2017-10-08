@@ -49,6 +49,8 @@ public class ShouldFire {
     public static boolean CHANGE_BLOCK_EVENT_PLACE = false;
     public static boolean CHANGE_BLOCK_EVENT_POST = false;
 
+    public static boolean DETONATE_EXPLOSIVE_EVENT = false;
+
     public static boolean DROP_ITEM_EVENT = false;
     public static boolean DROP_ITEM_EVENT_DESTRUCT = false;
     public static boolean DROP_ITEM_EVENT_DISPENSE = false;

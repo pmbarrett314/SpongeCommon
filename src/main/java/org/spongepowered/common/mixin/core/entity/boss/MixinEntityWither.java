@@ -50,6 +50,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 @Mixin(value = EntityWither.class)
 public abstract class MixinEntityWither extends MixinEntityMob implements Wither, IMixinFusedExplosive {
 
@@ -93,7 +95,7 @@ public abstract class MixinEntityWither extends MixinEntityMob implements Wither
 
     @ModifyArg(method = "launchWitherSkullToCoords", at = @At(value = "INVOKE",
                target = "Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"))
-    protected Entity onSpawnWitherSkull(Entity entity) {
+    private Entity onSpawnWitherSkull(Entity entity) {
         ((IMixinGriefer) entity).setCanGrief(((IMixinGriefer) this).canGrief());
         return entity;
     }
@@ -106,8 +108,8 @@ public abstract class MixinEntityWither extends MixinEntityMob implements Wither
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> radius) {
-        this.explosionRadius = radius.orElse(DEFAULT_EXPLOSION_RADIUS);
+    public void setExplosionRadius(@Nullable Integer radius) {
+        this.explosionRadius = radius != null ? radius : DEFAULT_EXPLOSION_RADIUS;
     }
 
     @Override
@@ -138,18 +140,18 @@ public abstract class MixinEntityWither extends MixinEntityMob implements Wither
     @Override
     public void prime() {
         checkState(!isPrimed(), "already primed");
-        if (shouldPrime()) {
+        if (shouldPrimeByEvent()) {
             setFuseTicksRemaining(this.fuseDuration);
-            postPrime();
+            throwPostPrimeEvent();
         }
     }
 
     @Override
     public void defuse() {
         checkState(isPrimed(), "not primed");
-        if (shouldDefuse()) {
+        if (shouldDefuseByEvent()) {
             setInvulTime(0);
-            postDefuse();
+            throwPostDefuseEvent();
         }
     }
 
@@ -166,14 +168,14 @@ public abstract class MixinEntityWither extends MixinEntityMob implements Wither
      */
     @Redirect(method = "ignite", at = @At(value = "INVOKE",
               target = "Lnet/minecraft/entity/boss/EntityWither;setInvulTime(I)V"))
-    protected void onSpawnPrime(EntityWither self, int fuseTicks) {
+    private void onSpawnPrime(EntityWither self, int fuseTicks) {
         prime();
     }
 
     @Redirect(method = "updateAITasks", at = @At(value = "INVOKE", target = TARGET_NEW_EXPLOSION))
-    protected net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x,
-                                                      double y, double z, float strength, boolean flaming,
-                                                      boolean smoking) {
+    private net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x,
+        double y, double z, float strength, boolean flaming,
+        boolean smoking) {
         return detonate(Explosion.builder()
                 .sourceExplosive(this)
                 .location(new Location<>((World) worldObj, new Vector3d(x, y, z)))

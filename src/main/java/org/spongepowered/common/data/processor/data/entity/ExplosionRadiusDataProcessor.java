@@ -52,7 +52,7 @@ public class ExplosionRadiusDataProcessor extends AbstractSingleDataSingleTarget
     @Override
     protected boolean set(Explosive explosive, Optional<Integer> value) {
         checkArgument(!value.isPresent() || value.get() >= 0, "value must be empty or no less than zero");
-        ((IMixinExplosive) explosive).setExplosionRadius(value);
+        ((IMixinExplosive) explosive).setExplosionRadius(value.orElse(null));
         return true;
     }
 

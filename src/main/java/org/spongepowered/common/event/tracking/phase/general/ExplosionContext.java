@@ -60,6 +60,11 @@ public final class ExplosionContext extends GeneralPhaseContext<ExplosionContext
         this.explosion = explosion;
         return this;
     }
+
+    public ExplosionContext explosion(org.spongepowered.api.world.explosion.Explosion explosion) {
+        this.explosion = (Explosion) explosion;
+        return this;
+    }
     
     public Explosion getExplosion() {
         return this.explosion;

@@ -54,7 +54,7 @@ public class MixinItemFirework extends Item {
     private boolean onspawnEntity(World world, Entity firework, EntityPlayer player, World worldIn, BlockPos pos, EnumHand side, EnumFacing hitX, float hitY, float hitZ, float p_180614_9_) {
         ((Firework) firework).setShooter((ProjectileSource) player);
         Sponge.getCauseStackManager().pushCause(player);
-        this.primeCancelled = !((IMixinEntityFireworkRocket) firework).shouldPrime();
+        this.primeCancelled = !((IMixinEntityFireworkRocket) firework).shouldPrimeByEvent();
         Sponge.getCauseStackManager().popCause();
         return !this.primeCancelled && world.spawnEntity(firework);
     }

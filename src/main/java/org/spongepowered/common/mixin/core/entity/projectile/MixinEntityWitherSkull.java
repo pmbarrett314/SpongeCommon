@@ -109,8 +109,8 @@ public abstract class MixinEntityWitherSkull extends MixinEntityFireball impleme
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> explosionRadius) {
-        this.explosionRadius = explosionRadius.orElse(DEFAULT_EXPLOSION_RADIUS);
+    public void setExplosionRadius(@Nullable Integer explosionRadius) {
+        this.explosionRadius = explosionRadius != null ? explosionRadius : DEFAULT_EXPLOSION_RADIUS;
     }
 
     @Override
@@ -120,9 +120,9 @@ public abstract class MixinEntityWitherSkull extends MixinEntityFireball impleme
     }
 
     @Redirect(method = "onImpact", at = @At(value = "INVOKE", target = EXPLOSION_TARGET))
-    protected net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x,
-                                                      double y, double z, float strength, boolean flaming,
-                                                      boolean smoking) {
+    private net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x,
+        double y, double z, float strength, boolean flaming,
+        boolean smoking) {
         boolean griefer = ((IMixinGriefer) this).canGrief();
         try (final CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
             Sponge.getCauseStackManager().pushCause(this);

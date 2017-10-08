@@ -1174,7 +1174,7 @@ public abstract class MixinWorldServer extends MixinWorld implements IMixinWorld
         checkNotNull(origin, "location");
         final PhaseTracker phaseTracker = PhaseTracker.getInstance();
 
-        try (final PhaseContext<?> phaseContext = PluginPhase.State.CUSTOM_EXPLOSION.createPhaseContext()
+        try (final PhaseContext<?> phaseContext = GeneralPhase.State.EXPLOSION.createPhaseContext()
                 .explosion(explosion)
                 .buildAndSwitch()) {
             final Explosion mcExplosion;

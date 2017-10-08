@@ -30,7 +30,12 @@ import org.spongepowered.api.event.SpongeEventFactory;
 import org.spongepowered.api.event.entity.explosive.DefuseExplosiveEvent;
 import org.spongepowered.api.event.entity.explosive.PrimeExplosiveEvent;
 import org.spongepowered.common.event.ShouldFire;
+import org.spongepowered.common.event.tracking.phase.general.GeneralPhase;
 
+/**
+ * A defaulted interface for all fused explosives to utilize default methods
+ * on this interface to throw various events.
+ */
 public interface IMixinFusedExplosive extends IMixinExplosive {
 
     int getFuseDuration();
@@ -41,7 +46,13 @@ public interface IMixinFusedExplosive extends IMixinExplosive {
 
     void setFuseTicksRemaining(int fuseTicks);
 
-    default boolean shouldPrime() {
+    /**
+     * Throws a {@link PrimeExplosiveEvent} to determine whether the
+     * explosive should prime, if there are listeners listening for said event.
+     *
+     * @return True if this explosive should prime
+     */
+    default boolean shouldPrimeByEvent() {
         if (ShouldFire.PRIME_EXPLOSIVE_EVENT_PRE) {
             PrimeExplosiveEvent.Pre event = SpongeEventFactory.createPrimeExplosiveEventPre(
                     Sponge.getCauseStackManager().getCurrentCause(), (FusedExplosive) this);
@@ -50,7 +61,13 @@ public interface IMixinFusedExplosive extends IMixinExplosive {
         return true;
     }
 
-    default void postPrime() {
+    /**
+     * Throws a {@link PrimeExplosiveEvent} to notify plugins that
+     * this explosive has primed. If the explosive is not defused,
+     * the {@link GeneralPhase.State#EXPLOSION} state will be
+     * entered when the explosion actually detonates.
+     */
+    default void throwPostPrimeEvent() {
         if (ShouldFire.PRIME_EXPLOSIVE_EVENT_POST) {
             PrimeExplosiveEvent.Post event = SpongeEventFactory.createPrimeExplosiveEventPost(
                     Sponge.getCauseStackManager().getCurrentCause(), (FusedExplosive) this);
@@ -58,7 +75,14 @@ public interface IMixinFusedExplosive extends IMixinExplosive {
         }
     }
 
-    default boolean shouldDefuse() {
+    /**
+     * Throws a {@link DefuseExplosiveEvent} to determine whether the
+     * explosive should be defused, if there are listeners listening for
+     * said event. If this does NOT defuse, the explosive will still
+     *
+     * @return True if this explosive should prime
+     */
+    default boolean shouldDefuseByEvent() {
         if (ShouldFire.DEFUSE_EXPLOSIVE_EVENT_PRE) {
             DefuseExplosiveEvent.Pre event = SpongeEventFactory.createDefuseExplosiveEventPre(
                     Sponge.getCauseStackManager().getCurrentCause(), (FusedExplosive) this);
@@ -67,7 +91,11 @@ public interface IMixinFusedExplosive extends IMixinExplosive {
         return true;
     }
 
-    default void postDefuse() {
+    /**
+     * Throws a {@link DefuseExplosiveEvent} to notify plugins of this
+     * explosive defusing.
+     */
+    default void throwPostDefuseEvent() {
         if (ShouldFire.DEFUSE_EXPLOSIVE_EVENT_POST) {
             DefuseExplosiveEvent.Post event = SpongeEventFactory.createDefuseExplosiveEventPost(
                     Sponge.getCauseStackManager().getCurrentCause(), (FusedExplosive) this);

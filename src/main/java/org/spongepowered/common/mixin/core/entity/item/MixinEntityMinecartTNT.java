@@ -32,7 +32,6 @@ import net.minecraft.entity.item.EntityMinecartTNT;
 import net.minecraft.util.DamageSource;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.vehicle.minecart.TNTMinecart;
-import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.spongepowered.api.world.explosion.Explosion;
@@ -47,30 +46,30 @@ import org.spongepowered.common.interfaces.entity.explosive.IMixinFusedExplosive
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 @Mixin(EntityMinecartTNT.class)
 public abstract class MixinEntityMinecartTNT extends MixinEntityMinecart implements TNTMinecart, IMixinFusedExplosive {
 
     private static final String TARGET_NEW_EXPLOSION = "Lnet/minecraft/world/World;createExplosion"
-            + "(Lnet/minecraft/entity/Entity;DDDFZ)Lnet/minecraft/world/Explosion;";
+                                                       + "(Lnet/minecraft/entity/Entity;DDDFZ)Lnet/minecraft/world/Explosion;";
 
-    @Shadow
-    private int                 minecartTNTFuse;
+    @Shadow private int minecartTNTFuse;
 
-    @Shadow
-    public abstract void ignite();
+    @Shadow public abstract void ignite();
 
-    private Optional<Integer> explosionRadius = Optional.empty();
-    private int               fuseDuration    = 80;
-    private boolean           detonationCancelled;
-    private Object            primeCause;
+    @Nullable private Integer explosionRadius = null;
+    private int fuseDuration = 80;
+    private boolean detonationCancelled;
+    @Nullable private Object primeCause;
 
     @Override
     public Optional<Integer> getExplosionRadius() {
-        return this.explosionRadius;
+        return Optional.ofNullable(this.explosionRadius);
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> radius) {
+    public void setExplosionRadius(@Nullable Integer radius) {
         this.explosionRadius = radius;
     }
 
@@ -103,9 +102,9 @@ public abstract class MixinEntityMinecartTNT extends MixinEntityMinecart impleme
     @Override
     public void defuse() {
         checkState(isPrimed(), "not primed");
-        if (shouldDefuse()) {
+        if (shouldDefuseByEvent()) {
             setFuseTicksRemaining(-1);
-            postDefuse();
+            throwPostDefuseEvent();
         }
     }
 
@@ -120,50 +119,54 @@ public abstract class MixinEntityMinecartTNT extends MixinEntityMinecart impleme
     }
 
     @Inject(method = "attackEntityFrom(Lnet/minecraft/util/DamageSource;F)Z", at = @At("INVOKE"))
-    protected void onAttack(DamageSource damageSource, float amount, CallbackInfoReturnable<Boolean> ci) {
+    private void onAttack(DamageSource damageSource, float amount, CallbackInfoReturnable<Boolean> ci) {
         this.primeCause = damageSource;
     }
 
     @Inject(method = "onActivatorRailPass(IIIZ)V", at = @At("INVOKE"))
-    protected void onActivate(int x, int y, int z, boolean receivingPower, CallbackInfo ci) {
+    private void onActivate(int x, int y, int z, boolean receivingPower, CallbackInfo ci) {
         if (receivingPower) {
             getWorld().getNotifier(x, y, z).ifPresent(notifier -> this.primeCause = notifier);
         }
     }
 
     @Inject(method = "ignite", at = @At("INVOKE"), cancellable = true)
-    protected void preIgnite(CallbackInfo ci) {
-        if (!shouldPrime()) {
+    private void preIgnite(CallbackInfo ci) {
+        if (!shouldPrimeByEvent()) {
             setFuseTicksRemaining(-1);
             ci.cancel();
         }
     }
 
     @Inject(method = "ignite", at = @At("RETURN"))
-    protected void postIgnite(CallbackInfo ci) {
+    private void postIgnite(CallbackInfo ci) {
         setFuseTicksRemaining(this.fuseDuration);
         if (this.primeCause != null) {
             Sponge.getCauseStackManager().pushCause(this.primeCause);
         }
-        postPrime();
+        throwPostPrimeEvent();
         if (this.primeCause != null) {
             Sponge.getCauseStackManager().popCause();
         }
     }
 
     @Redirect(method = "explodeCart", at = @At(value = "INVOKE", target = TARGET_NEW_EXPLOSION))
-    protected net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x, double y, double z, float strength,
-            boolean smoking) {
-        return detonate(Explosion.builder().location(new Location<>((World) worldObj, new Vector3d(x, y, z))).sourceExplosive(this)
-                .radius(this.explosionRadius.isPresent() ? this.explosionRadius.get() : strength).shouldPlaySmoke(smoking).shouldBreakBlocks(smoking))
-                        .orElseGet(() -> {
-                            this.detonationCancelled = true;
-                            return null;
-                        });
+    private net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x, double y, double z, float strength,
+        boolean smoking) {
+        return detonate(Explosion.builder()
+            .location(new Location<>((World) worldObj, new Vector3d(x, y, z)))
+            .sourceExplosive(this)
+            .radius(this.explosionRadius != null ? this.explosionRadius : strength)
+            .shouldPlaySmoke(smoking)
+            .shouldBreakBlocks(smoking))
+            .orElseGet(() -> {
+                this.detonationCancelled = true;
+                return null;
+            });
     }
 
     @Inject(method = "explodeCart", at = @At("RETURN"))
-    protected void postExplode(CallbackInfo ci) {
+    private void postExplode(CallbackInfo ci) {
         if (this.detonationCancelled) {
             this.detonationCancelled = this.isDead = false;
         }

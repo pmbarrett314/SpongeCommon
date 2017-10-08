@@ -34,7 +34,6 @@ import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.projectile.Firework;
 import org.spongepowered.api.entity.projectile.source.ProjectileSource;
 import org.spongepowered.api.event.CauseStackManager;
-import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.world.explosion.Explosion;
 import org.spongepowered.asm.mixin.Mixin;
@@ -44,6 +43,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.common.entity.projectile.ProjectileSourceSerializer;
+import org.spongepowered.common.event.NotStackNeutral;
 import org.spongepowered.common.interfaces.entity.IMixinEntityFireworkRocket;
 import org.spongepowered.common.mixin.core.entity.MixinEntity;
 
@@ -108,9 +108,9 @@ public abstract class MixinEntityFireworkRocket extends MixinEntity implements F
     @Override
     public void defuse() {
         checkState(isPrimed(), "not primed");
-        if (shouldDefuse()) {
+        if (shouldDefuseByEvent()) {
             setDead();
-            postDefuse();
+            throwPostDefuseEvent();
         }
     }
 
@@ -146,12 +146,12 @@ public abstract class MixinEntityFireworkRocket extends MixinEntity implements F
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> radius) {
-        this.explosionRadius = radius.orElse(DEFAULT_EXPLOSION_RADIUS);
+    public void setExplosionRadius(@Nullable Integer radius) {
+        this.explosionRadius = radius != null ? radius : DEFAULT_EXPLOSION_RADIUS;
     }
 
     @Redirect(method = "onUpdate", at = @At(value = "INVOKE", target = TARGET_ENTITY_STATE))
-    protected void onExplode(World world, Entity self, byte state) {
+    private void onExplode(World world, Entity self, byte state) {
         // Fireworks don't typically explode like other explosives, but we'll
         // post an event regardless and if the radius is zero the explosion
         // won't be triggered (the default behavior).
@@ -165,13 +165,14 @@ public abstract class MixinEntityFireworkRocket extends MixinEntity implements F
         Sponge.getCauseStackManager().popCause();
     }
 
+    @NotStackNeutral
     @Inject(method = "onUpdate", at = @At("RETURN"))
-    protected void onUpdate(CallbackInfo ci) {
+    private void onUpdate(CallbackInfo ci) {
         if (this.fireworkAge == 1) {
             try (final CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
                 Sponge.getCauseStackManager().pushCause(this);
                 Sponge.getCauseStackManager().addContext(EventContextKeys.THROWER, getShooter());
-                postPrime();
+                throwPostPrimeEvent();
             }
         }
     }

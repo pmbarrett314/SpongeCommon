@@ -63,8 +63,8 @@ public abstract class MixinEntityEnderCrystal extends MixinEntity implements End
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> radius) {
-        this.explosionStrength = radius.orElse(DEFAULT_EXPLOSION_STRENGTH);
+    public void setExplosionRadius(@Nullable Integer radius) {
+        this.explosionStrength = radius != null ? radius : DEFAULT_EXPLOSION_STRENGTH;
     }
 
     @Override
@@ -75,13 +75,13 @@ public abstract class MixinEntityEnderCrystal extends MixinEntity implements End
     }
 
     @Inject(method = "attackEntityFrom(Lnet/minecraft/util/DamageSource;F)Z", at = @At(value = "INVOKE"))
-    protected void onAttack(DamageSource damageSource, float amount, CallbackInfoReturnable<Boolean> ci) {
+    private void onAttack(DamageSource damageSource, float amount, CallbackInfoReturnable<Boolean> ci) {
         this.detonationCause = damageSource;
     }
 
     @Redirect(method = "attackEntityFrom", at = @At(value = "INVOKE", target = TARGET_NEW_EXPLOSION))
-    protected net.minecraft.world.Explosion onExplode(net.minecraft.world.World world, @Nullable Entity nil, double x,
-                                                    double y, double z, float strength, boolean smoking) {
+    private net.minecraft.world.Explosion onExplode(net.minecraft.world.World world, @Nullable Entity nil, double x,
+        double y, double z, float strength, boolean smoking) {
         if (this.detonationCause != null) Sponge.getCauseStackManager().pushCause(this.detonationCause);
         net.minecraft.world.Explosion ex = detonate(Explosion.builder()
                 .location(new Location<>((World) world, new Vector3d(x, y, z)))

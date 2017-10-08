@@ -32,6 +32,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.monster.EntityCreeper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.living.monster.Creeper;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
@@ -48,6 +49,8 @@ import org.spongepowered.common.interfaces.entity.IMixinGriefer;
 import org.spongepowered.common.interfaces.entity.explosive.IMixinFusedExplosive;
 
 import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 @Mixin(EntityCreeper.class)
 public abstract class MixinEntityCreeper extends MixinEntityMob implements Creeper, IMixinFusedExplosive {
@@ -104,8 +107,8 @@ public abstract class MixinEntityCreeper extends MixinEntityMob implements Creep
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> radius) {
-        this.explosionRadius = radius.orElse(DEFAULT_EXPLOSION_RADIUS);
+    public void setExplosionRadius(@Nullable Integer radius) {
+        this.explosionRadius = radius != null ? radius : DEFAULT_EXPLOSION_RADIUS;
     }
 
     @Override
@@ -156,11 +159,11 @@ public abstract class MixinEntityCreeper extends MixinEntityMob implements Creep
     }
 
     @Inject(method = "setCreeperState(I)V", at = @At("INVOKE"), cancellable = true)
-    protected void onStateChange(int state, CallbackInfo ci) {
+    private void onStateChange(int state, CallbackInfo ci) {
         setFuseDuration(this.fuseDuration);
-        if (!isPrimed() && state == STATE_PRIMED && !shouldPrime()) {
+        if (!isPrimed() && state == STATE_PRIMED && !shouldPrimeByEvent()) {
             ci.cancel();
-        } else if (isPrimed() && state == STATE_IDLE && !shouldDefuse()) {
+        } else if (isPrimed() && state == STATE_IDLE && !shouldDefuseByEvent()) {
             ci.cancel();
         } else if (getCreeperState() != state) {
             this.stateDirty = true;
@@ -168,20 +171,20 @@ public abstract class MixinEntityCreeper extends MixinEntityMob implements Creep
     }
 
     @Inject(method = "setCreeperState(I)V", at = @At("RETURN"))
-    protected void postStateChange(int state, CallbackInfo ci) {
+    private void postStateChange(int state, CallbackInfo ci) {
         if (this.stateDirty) {
             if (state == STATE_PRIMED) {
-                postPrime();
+                throwPostPrimeEvent();
             } else if (state == STATE_IDLE) {
-                postDefuse();
+                throwPostDefuseEvent();
             }
             this.stateDirty = false;
         }
     }
 
     @Redirect(method = "explode", at = @At(value = "INVOKE", target = TARGET_NEW_EXPLOSION))
-    protected net.minecraft.world.Explosion onExplode(net.minecraft.world.World world, Entity self, double x,
-            double y, double z, float strength, boolean smoking) {
+    private net.minecraft.world.Explosion onExplode(net.minecraft.world.World world, Entity self, double x,
+        double y, double z, float strength, boolean smoking) {
         return detonate(Explosion.builder()
                 .location(new Location<>((World) world, new Vector3d(x, y, z)))
                 .sourceExplosive(this)
@@ -195,27 +198,25 @@ public abstract class MixinEntityCreeper extends MixinEntityMob implements Creep
     }
 
     @Inject(method = "explode", at = @At("RETURN"))
-    protected void postExplode(CallbackInfo ci) {
+    private void postExplode(CallbackInfo ci) {
         if (this.detonationCancelled) {
             this.detonationCancelled = this.isDead = false;
         }
     }
 
     @Redirect(method = "processInteract", at = @At(value = "INVOKE", target = TARGET_IGNITE))
-    protected void onInteractIgnite(EntityCreeper self) {
-        this.interactPrimeCancelled = !shouldPrime();
+    private void onInteractIgnite(EntityCreeper self) {
+        this.interactPrimeCancelled = !shouldPrimeByEvent();
         if (!this.interactPrimeCancelled) {
             ignite();
         }
     }
 
     @Redirect(method = "processInteract", at = @At(value = "INVOKE", target = TARGET_DAMAGE_ITEM))
-    protected void onDamageFlintAndSteel(ItemStack fas, int amount, EntityLivingBase player) {
+    private void onDamageFlintAndSteel(ItemStack fas, int amount, EntityLivingBase player) {
         if (!this.interactPrimeCancelled) {
             fas.damageItem(amount, player);
-            // TODO put this in the cause somehow?
-//            this.primeCause = Cause.of(NamedCause.of(NamedCause.IGNITER, player));
-//            this.detonationCause = this.primeCause;
+            Sponge.getCauseStackManager().pushCause(player);
         }
         this.interactPrimeCancelled = false;
     }

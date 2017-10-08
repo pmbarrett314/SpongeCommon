@@ -68,8 +68,8 @@ public abstract class MixinEntityLargeFireball extends MixinEntityFireball imple
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> radius) {
-        this.explosionPower = radius.orElse(DEFAULT_EXPLOSION_RADIUS);
+    public void setExplosionRadius(@Nullable Integer radius) {
+        this.explosionPower = radius != null ? radius : DEFAULT_EXPLOSION_RADIUS;
     }
 
     @Override
@@ -79,9 +79,9 @@ public abstract class MixinEntityLargeFireball extends MixinEntityFireball imple
     }
 
     @Redirect(method = "onImpact", at = @At(value = "INVOKE", target = TARGET_NEW_EXPLOSION))
-    protected net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, @Nullable Entity nil,
-                                                      double x, double y, double z, float strength, boolean flaming,
-                                                      boolean smoking) {
+    private net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, @Nullable Entity nil,
+        double x, double y, double z, float strength, boolean flaming,
+        boolean smoking) {
         boolean griefer = ((IMixinGriefer) this).canGrief();
         try (final CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
             Sponge.getCauseStackManager().pushCause(this);

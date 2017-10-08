@@ -82,7 +82,6 @@ public abstract class MixinExplosion implements Explosion, IMixinExplosion {
     public Vec3d position; // Added for Forge
     private boolean shouldBreakBlocks;
     private boolean shouldDamageEntities;
-//    private Cause createdCause;
 
     @Shadow @Final private List<BlockPos> affectedBlockPositions;
     @Shadow @Final private Map<EntityPlayer, Vec3d> playerKnockbackMap;
@@ -109,60 +108,16 @@ public abstract class MixinExplosion implements Explosion, IMixinExplosion {
         this.shouldDamageEntities = true;
     }
 
-
-    // TODO fix this whereever it was called from?
-//    @Override
-//    public Cause createCause() {
-//        if (this.createdCause != null) {
-//            return this.createdCause;
-//        }
-//        Object source;
-//        Object projectileSource = null;
-//        Object igniter = null;
-//        if (this.exploder == null) {
-//            source = getWorld().getBlock(getLocation().getPosition().toInt());
-//        } else {
-//            source = this.exploder;
-//            if (source instanceof Projectile) {
-//                projectileSource = ((Projectile) this.exploder).getShooter();
-//            }
-//
-//            // Don't use the exploder itself as igniter
-//            igniter = getExplosivePlacedBy();
-//            if (this.exploder == igniter) {
-//                igniter = null;
-//            }
-//        }
-//
-//        final Cause.Builder builder = Cause.source(source);
-//        if (projectileSource != null) {
-//            if (igniter != null) {
-//                builder.named(NamedCause.of("ProjectileSource", projectileSource)).named(NamedCause.of("Igniter", igniter));
-//            } else {
-//                builder.named(NamedCause.of("ProjectileSource", projectileSource));
-//            }
-//        } else if (igniter != null) {
-//            builder.named(NamedCause.of("Igniter", igniter));
-//        }
-//        if (PhaseTracker.ENABLED) {
-//            final PhaseData phaseData = PhaseTracker.getInstance().getCurrentPhaseData();
-//            phaseData.state.getPhase().appendExplosionCause(phaseData);
-//        }
-//        return this.createdCause = builder.build();
-//    }
-//
-//    @Override
-//    public Cause getCreatedCause() {
-//        if (this.createdCause == null) {
-//            createCause();
-//        }
-//        return this.createdCause;
-//    }
-
     /**
      * @author gabizou - September 8th, 2016
      * @reason Rewrites to use our own hooks that will patch with forge perfectly well,
      * and allows for maximal capability.
+     *
+     * Author's Note: This method is not cause stack neutral as it will manually
+     * add to the stack for the {@link #getExplosivePlacedBy()} if it is not null,
+     * and expect that this is called by
+     * {@link MixinWorldServer#newExplosion(Entity, double, double, double, float, boolean, boolean)},
+     * which creates a new stack frame to automatically pop the causes.
      */
     @Final
     @Overwrite
@@ -238,10 +193,14 @@ public abstract class MixinExplosion implements Explosion, IMixinExplosion {
         for (Entity entity : list) {
             entities.add((org.spongepowered.api.entity.Entity) entity);
         }
+        if (this.getExplosivePlacedBy() != null) {
+            Sponge.getCauseStackManager().pushCause(this.getExplosivePlacedBy());
+        }
         ExplosionEvent.Detonate detonate = SpongeEventFactory.createExplosionEventDetonate(Sponge.getCauseStackManager().getCurrentCause(), blockPositions, entities, this, (World) this.world);
         SpongeImpl.postEvent(detonate);
         if (detonate.isCancelled()) {
             this.affectedBlockPositions.clear();
+            Sponge.getCauseStackManager().popCause();
             return;
         }
         this.affectedBlockPositions.clear();
@@ -382,6 +341,7 @@ public abstract class MixinExplosion implements Explosion, IMixinExplosion {
                         if (peek.state.requiresBlockPosTracking()) {
                             peek.context.getCaptureBlockPos().setPos(blockpos);
                         }
+                        // TODO - will manually switch in
                         block.dropBlockAsItemWithChance(this.world, blockpos, this.world.getBlockState(blockpos), 1.0F / this.size, 0);
                         // And then un-set the captured block position
                         if (peek.state.requiresBlockPosTracking()) {

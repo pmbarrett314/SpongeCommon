@@ -27,19 +27,16 @@ package org.spongepowered.common.mixin.core.entity.item;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.flowpowered.math.vector.Vector3d;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityTNTPrimed;
 import org.spongepowered.api.Sponge;
-import net.minecraft.util.math.BlockPos;
 import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.block.BlockType;
 import org.spongepowered.api.block.BlockTypes;
 import org.spongepowered.api.entity.explosive.PrimedTNT;
 import org.spongepowered.api.entity.living.Living;
 import org.spongepowered.api.event.CauseStackManager;
-import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.world.BlockChangeFlag;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
@@ -50,8 +47,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.common.event.NotStackNeutral;
 import org.spongepowered.common.interfaces.entity.IMixinEntityTNTPrimed;
-import org.spongepowered.common.interfaces.world.IMixinWorldServer;
 import org.spongepowered.common.mixin.core.entity.MixinEntity;
 
 import java.util.Optional;
@@ -90,13 +87,13 @@ public abstract class MixinEntityTNTPrimed extends MixinEntity implements Primed
     @Override
     public void defuse() {
         checkState(isPrimed(), "not primed");
-        if (shouldDefuse()) {
+        if (shouldDefuseByEvent()) {
             setDead();
             // Place a TNT block at the Entity's position
             Sponge.getCauseStackManager().pushCause(this);
             getWorld().setBlock((int) this.posX, (int) this.posY, (int) this.posZ, BlockState.builder().blockType(BLOCK_TYPE).build(), BlockChangeFlag.ALL);
             Sponge.getCauseStackManager().popCause();
-            postDefuse();
+            throwPostDefuseEvent();
         }
     }
 
@@ -106,8 +103,8 @@ public abstract class MixinEntityTNTPrimed extends MixinEntity implements Primed
     }
 
     @Override
-    public void setExplosionRadius(Optional<Integer> radius) {
-        this.explosionRadius = radius.orElse(DEFAULT_EXPLOSION_RADIUS);
+    public void setExplosionRadius(@Nullable Integer radius) {
+        this.explosionRadius = radius != null ? radius : DEFAULT_EXPLOSION_RADIUS;
     }
 
     @Override
@@ -149,8 +146,8 @@ public abstract class MixinEntityTNTPrimed extends MixinEntity implements Primed
     }
 
     @Redirect(method = "explode", at = @At(value = "INVOKE", target = TARGET_NEW_EXPLOSION))
-    protected net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x,
-                                                      double y, double z, float strength, boolean smoking) {
+    private net.minecraft.world.Explosion onExplode(net.minecraft.world.World worldObj, Entity self, double x,
+        double y, double z, float strength, boolean smoking) {
         return detonate(Explosion.builder()
                 .location(new Location<>((World) worldObj, new Vector3d(x, y, z)))
                 .sourceExplosive(this)
@@ -164,22 +161,23 @@ public abstract class MixinEntityTNTPrimed extends MixinEntity implements Primed
     }
 
     @Inject(method = "explode", at = @At("RETURN"))
-    protected void postExplode(CallbackInfo ci) {
+    private void postExplode(CallbackInfo ci) {
         if (this.detonationCancelled) {
             defuse();
             this.detonationCancelled = false;
         }
     }
 
+    @NotStackNeutral
     @Inject(method = "onUpdate", at = @At("RETURN"))
-    protected void onUpdate(CallbackInfo ci) {
+    private void onUpdate(CallbackInfo ci) {
         if (this.fuse == this.fuseDuration - 1 && !this.world.isRemote) {
             try (final CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
                 if (this.detonator != null) {
                     Sponge.getCauseStackManager().pushCause(this.detonator);
                 }
                 Sponge.getCauseStackManager().pushCause(this);
-                postPrime();
+                throwPostPrimeEvent();
             }
         }
     }
