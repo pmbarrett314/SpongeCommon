@@ -72,7 +72,7 @@ public class SpongeMushroomType implements MushroomType {
             return false;
         }
         SpongeBiomeTreeType b = (SpongeBiomeTreeType) o;
-        return getId().equals(b.getId());
+        return getKey().equals(b.getKey());
     }
 
     @Override
@@ -83,7 +83,7 @@ public class SpongeMushroomType implements MushroomType {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("id", this.getId())
+                .add("id", this.getKey())
                 .add("popobj", this.obj.getClass().getName())
                 .toString();
     }

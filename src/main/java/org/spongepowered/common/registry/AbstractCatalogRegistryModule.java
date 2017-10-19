@@ -24,6 +24,8 @@
  */
 package org.spongepowered.common.registry;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import org.spongepowered.api.CatalogKey;
 import org.spongepowered.api.CatalogType;
 import org.spongepowered.api.registry.AlternateCatalogRegistryModule;
@@ -37,12 +39,22 @@ public abstract class AbstractCatalogRegistryModule<C extends CatalogType> imple
     protected final RegistryMap<C> map = new RegistryMap<>();
 
     protected void register(final C value) {
+        this.register(value.getKey(), value);
+    }
+
+    protected void register(final CatalogKey key, final C value) {
+        checkState(!this.map.containsKey(key), "duplicate value for key %s", key);
         this.map.put(value.getKey(), value);
     }
 
     @Override
     public final Optional<C> get(final CatalogKey key) {
         return this.map.getOptional(key);
+    }
+
+    @Override
+    public final Optional<C> getById(final String id) {
+        return AlternateCatalogRegistryModule.super.getById(id);
     }
 
     @Override
