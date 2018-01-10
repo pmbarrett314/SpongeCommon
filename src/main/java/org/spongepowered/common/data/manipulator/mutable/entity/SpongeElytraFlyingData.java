@@ -25,24 +25,24 @@
 package org.spongepowered.common.data.manipulator.mutable.entity;
 
 import org.spongepowered.api.data.key.Keys;
-import org.spongepowered.api.data.manipulator.immutable.entity.ImmutableElytraData;
-import org.spongepowered.api.data.manipulator.mutable.entity.ElytraData;
+import org.spongepowered.api.data.manipulator.immutable.entity.ImmutableElytraFlyingData;
+import org.spongepowered.api.data.manipulator.mutable.entity.ElytraFlyingData;
 import org.spongepowered.api.data.value.mutable.Value;
-import org.spongepowered.common.data.manipulator.immutable.entity.ImmutableSpongeElytraData;
+import org.spongepowered.common.data.manipulator.immutable.entity.ImmutableSpongeElytraFlyingData;
 import org.spongepowered.common.data.manipulator.mutable.common.AbstractBooleanData;
 
-public class SpongeElytraData extends AbstractBooleanData<ElytraData, ImmutableElytraData> implements ElytraData {
+public class SpongeElytraFlyingData extends AbstractBooleanData<ElytraFlyingData, ImmutableElytraFlyingData> implements ElytraFlyingData {
 
-    public SpongeElytraData(boolean value) {
-        super(ElytraData.class, value, Keys.IS_ELYTRA_FLYING, ImmutableSpongeElytraData.class, false);
+    public SpongeElytraFlyingData(boolean value) {
+        super(ElytraFlyingData.class, value, Keys.IS_ELYTRA_FLYING, ImmutableSpongeElytraFlyingData.class, false);
     }
 
-    public SpongeElytraData() {
+    public SpongeElytraFlyingData() {
         this(false);
     }
 
     @Override
-    public Value<Boolean> flying() {
+    public Value<Boolean> elytraFlying() {
         return getValueGetter();
     }
 

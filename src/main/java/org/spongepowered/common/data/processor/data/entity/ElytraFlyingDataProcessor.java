@@ -27,12 +27,12 @@ package org.spongepowered.common.data.processor.data.entity;
 import net.minecraft.entity.EntityLivingBase;
 import org.spongepowered.api.data.DataTransactionResult;
 import org.spongepowered.api.data.key.Keys;
-import org.spongepowered.api.data.manipulator.immutable.entity.ImmutableElytraData;
-import org.spongepowered.api.data.manipulator.mutable.entity.ElytraData;
+import org.spongepowered.api.data.manipulator.immutable.entity.ImmutableElytraFlyingData;
+import org.spongepowered.api.data.manipulator.mutable.entity.ElytraFlyingData;
 import org.spongepowered.api.data.value.ValueContainer;
 import org.spongepowered.api.data.value.immutable.ImmutableValue;
 import org.spongepowered.api.data.value.mutable.Value;
-import org.spongepowered.common.data.manipulator.mutable.entity.SpongeElytraData;
+import org.spongepowered.common.data.manipulator.mutable.entity.SpongeElytraFlyingData;
 import org.spongepowered.common.data.processor.common.AbstractEntitySingleDataProcessor;
 import org.spongepowered.common.data.value.immutable.ImmutableSpongeValue;
 import org.spongepowered.common.data.value.mutable.SpongeValue;
@@ -40,9 +40,9 @@ import org.spongepowered.common.interfaces.entity.IMixinEntityLivingBase;
 
 import java.util.Optional;
 
-public class ElytraDataProcessor extends AbstractEntitySingleDataProcessor<EntityLivingBase, Boolean, Value<Boolean>, ElytraData, ImmutableElytraData> {
+public class ElytraFlyingDataProcessor extends AbstractEntitySingleDataProcessor<EntityLivingBase, Boolean, Value<Boolean>, ElytraFlyingData, ImmutableElytraFlyingData> {
 
-    public ElytraDataProcessor() {
+    public ElytraFlyingDataProcessor() {
         super(EntityLivingBase.class, Keys.IS_ELYTRA_FLYING);
     }
 
@@ -73,7 +73,7 @@ public class ElytraDataProcessor extends AbstractEntitySingleDataProcessor<Entit
     }
 
     @Override
-    protected ElytraData createManipulator() {
-        return new SpongeElytraData();
+    protected ElytraFlyingData createManipulator() {
+        return new SpongeElytraFlyingData();
     }
 }

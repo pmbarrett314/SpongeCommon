@@ -262,8 +262,8 @@ public class DataRegistrar {
         DataUtil.registerDataProcessorAndImpl(MovementSpeedData.class, SpongeMovementSpeedData.class, ImmutableMovementSpeedData.class,
                 ImmutableSpongeMovementSpeedData.class, new MovementSpeedDataProcessor());
 
-        DataUtil.registerDualProcessor(ElytraData.class, SpongeElytraData.class, ImmutableElytraData.class,
-                ImmutableSpongeElytraData.class, new ElytraDataProcessor());
+        DataUtil.registerDualProcessor(ElytraFlyingData.class, SpongeElytraFlyingData.class, ImmutableElytraFlyingData.class,
+                ImmutableSpongeElytraFlyingData.class, new ElytraFlyingDataProcessor());
 
         DataUtil.registerDualProcessor(SlimeData.class, SpongeSlimeData.class, ImmutableSlimeData.class, ImmutableSpongeSlimeData.class,
                 new SlimeDataProcessor());
