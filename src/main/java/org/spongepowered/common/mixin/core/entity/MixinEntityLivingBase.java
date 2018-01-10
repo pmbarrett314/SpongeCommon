@@ -933,4 +933,8 @@ public abstract class MixinEntityLivingBase extends MixinEntity implements Livin
         return ProjectileLauncher.launch(checkNotNull(projectileClass, "projectile class"), this, checkNotNull(velocity, "velocity"));
     }
 
+    public void setElytraFlying(boolean value) {
+        setFlag(7, value);
+    }
+
 }
