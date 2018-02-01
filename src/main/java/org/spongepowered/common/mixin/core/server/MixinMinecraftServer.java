@@ -141,7 +141,6 @@ public abstract class MixinMinecraftServer implements Server, ConsoleSource, IMi
     @Shadow private Thread serverThread;
     @Shadow @Final private DataFixer dataFixer;
 
-    @Shadow public abstract void setDifficultyForAllWorlds(EnumDifficulty difficulty);
     @Shadow public abstract void sendMessage(ITextComponent message);
     @Shadow public abstract void initiateShutdown();
     @Shadow public abstract boolean isServerInOnlineMode();
@@ -814,5 +813,10 @@ public abstract class MixinMinecraftServer implements Server, ConsoleSource, IMi
     private void onCrashReport(CrashReport report, CallbackInfoReturnable<CrashReport> cir) {
         report.makeCategory("Sponge PhaseTracker").addDetail("Cause Stack", CauseTrackerCrashHandler.INSTANCE);
         cir.setReturnValue(report);
+    }
+
+    @Overwrite
+    public void setDifficultyForAllWorlds(EnumDifficulty difficulty) {
+        WorldManager.updateServerDifficulty();
     }
 }

@@ -137,6 +137,8 @@ public abstract class MixinWorldInfo implements WorldProperties, IMixinWorldInfo
     @Shadow private int borderWarningDistance;
     @Shadow private int borderWarningTime;
     @Shadow private GameRules gameRules;
+
+    @Shadow public abstract void setDifficulty(EnumDifficulty newDifficulty);
     // TODO 1.9 Clone is an AWFUL NAME for this, its really fillCompound which takes a playerNbtCompound to use or if null, uses the player one
     // TODO 1.9 already in this info. It then populates a returned compound with the worldInfo's properties.
     @Shadow public abstract NBTTagCompound cloneNBTCompound(NBTTagCompound nbt);
@@ -418,9 +420,20 @@ public abstract class MixinWorldInfo implements WorldProperties, IMixinWorldInfo
         return (Difficulty) (Object) this.difficulty;
     }
 
+    @Inject(method = "setDifficulty", at = @At("HEAD"))
+    public void onSetDifficultyVanilla(EnumDifficulty newDifficulty, CallbackInfo ci) {
+
+        final SpongeConfig<WorldConfig> worldConfig = this.getOrCreateWorldConfig();
+        worldConfig.getConfig().getWorld().setDifficulty((Difficulty) (Object) newDifficulty);
+
+        if (worldConfig.getConfig().isConfigEnabled()) {
+            worldConfig.save();
+        }
+    }
+
     @Override
     public void setDifficulty(Difficulty difficulty) {
-        this.difficulty = (EnumDifficulty) (Object) difficulty;
+        this.setDifficulty((EnumDifficulty) (Object) difficulty);
     }
 
     @Override

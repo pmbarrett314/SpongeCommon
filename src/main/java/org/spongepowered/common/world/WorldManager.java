@@ -40,6 +40,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.datafix.FixTypes;
 import net.minecraft.world.DimensionType;
+import net.minecraft.world.EnumDifficulty;
 import net.minecraft.world.GameType;
 import net.minecraft.world.MinecraftException;
 import net.minecraft.world.ServerWorldEventHandler;
@@ -60,10 +61,14 @@ import org.spongepowered.api.util.file.DeleteFileVisitor;
 import org.spongepowered.api.util.file.ForwardingFileVisitor;
 import org.spongepowered.api.world.DimensionTypes;
 import org.spongepowered.api.world.WorldArchetype;
+import org.spongepowered.api.world.difficulty.Difficulty;
 import org.spongepowered.api.world.storage.WorldProperties;
 import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.config.SpongeConfig;
+import org.spongepowered.common.config.category.WorldCategory;
+import org.spongepowered.common.config.type.DimensionConfig;
 import org.spongepowered.common.config.type.GeneralConfigBase;
+import org.spongepowered.common.config.type.WorldConfig;
 import org.spongepowered.common.data.util.DataUtil;
 import org.spongepowered.common.data.util.NbtDataUtil;
 import org.spongepowered.common.event.tracking.PhaseContext;
@@ -1052,6 +1057,75 @@ public final class WorldManager {
         checkArgument(worldPropertiesByWorldUuid.containsKey(worldProperties.getUniqueId()), "World properties not registered!");
         checkState(!worldByDimensionId.containsKey(((IMixinWorldInfo) worldProperties).getDimensionId()), "World not unloaded!");
         return SpongeImpl.getScheduler().submitAsyncTask(new DeleteWorldTask(worldProperties));
+    }
+
+    /**
+     * Called when the server wants to update the difficulty on all worlds.
+     *
+     * Sponge changes this slightly to fit the mold of what we consider a "multi-world" implementation in the following ways:
+     *
+     * - If the world config or dimension config are disabled or the world category is disabled, use the server difficulty
+     * - If the world config has no entry or a blank entry for the difficulty, use the server difficulty
+     * - If the world config has an invalid difficulty entry, use the server difficulty
+     * - Otherwise, use the specified difficulty
+     */
+    public static void updateServerDifficulty() {
+        final EnumDifficulty serverDifficulty = SpongeImpl.getServer().getDifficulty();
+
+        for (WorldServer worldServer : getWorlds()) {
+            final SpongeConfig<? extends GeneralConfigBase> activeConfig = ((IMixinWorldServer) worldServer).getActiveConfig();
+            if (!activeConfig.getConfig().isConfigEnabled()) {
+                setDifficultyFor(worldServer, serverDifficulty, false);
+            } else {
+                if (activeConfig.getConfig() instanceof DimensionConfig || activeConfig.getConfig() instanceof WorldConfig) {
+                    final WorldCategory worldCategory = activeConfig.getConfig().getWorld();
+                    if (!worldCategory.isWorldEnabled()) {
+                        setDifficultyFor(worldServer, serverDifficulty, false);
+                        continue;
+                    }
+
+                    final String difficulty = worldCategory.getDifficulty();
+                    if (difficulty == null || difficulty.isEmpty()) {
+                        setDifficultyFor(worldServer, serverDifficulty, false);
+                        continue;
+                    }
+
+                    final Difficulty found = Sponge.getRegistry().getType(Difficulty.class, difficulty).orElse(null);
+                    if (found == null) {
+                        setDifficultyFor(worldServer, serverDifficulty, false);
+                        continue;
+                    }
+
+                    setDifficultyFor(worldServer, (EnumDifficulty) (Object) found, false);
+                }
+            }
+        }
+    }
+
+    public static void setDifficultyFor(WorldServer worldServer, EnumDifficulty difficulty, boolean writeConfig) {
+        final MinecraftServer server = SpongeImpl.getServer();
+
+        // TODO Figure out hardcore support?
+        if (worldServer.getWorldInfo().isHardcoreModeEnabled()) {
+            // Calling setDifficulty will write to the config and we don't want to do this for server default difficulty
+            if (writeConfig) {
+                worldServer.getWorldInfo().setDifficulty(EnumDifficulty.HARD);
+            } else {
+                worldServer.getWorldInfo().difficulty = EnumDifficulty.HARD;
+            }
+            worldServer.setAllowedSpawnTypes(true, true);
+            return;
+        } else if (SpongeImpl.getServer().isSinglePlayer()) {
+            worldServer.setAllowedSpawnTypes(worldServer.getDifficulty() != EnumDifficulty.PEACEFUL, true);
+        } else {
+            worldServer.setAllowedSpawnTypes(server.allowSpawnMonsters(), server.getCanSpawnAnimals());
+        }
+
+        if (writeConfig) {
+            worldServer.getWorldInfo().setDifficulty(difficulty);
+        } else {
+            worldServer.getWorldInfo().difficulty = difficulty;
+        }
     }
 
     private static class CopyWorldTask implements Callable<Optional<WorldProperties>> {

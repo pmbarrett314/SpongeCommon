@@ -26,6 +26,7 @@ package org.spongepowered.common.config.category;
 
 import ninja.leaping.configurate.objectmapping.Setting;
 import ninja.leaping.configurate.objectmapping.serialize.ConfigSerializable;
+import org.spongepowered.api.world.difficulty.Difficulty;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -112,7 +113,10 @@ public class WorldCategory extends ConfigCategory {
                     + "\nThe server-wide view distance will be used when the value is " + USE_SERVER_VIEW_DISTANCE + "."
     )
     private int viewDistance = USE_SERVER_VIEW_DISTANCE;
-    
+
+    @Setting(value = "difficulty", comment = "Difficulty that this world should have. Leave blank to use the server default")
+    private String difficulty = "";
+
     public WorldCategory() {
         this.portalAgents.put("minecraft:default_nether", "DIM-1");
         this.portalAgents.put("minecraft:default_the_end", "DIM1");
@@ -232,5 +236,13 @@ public class WorldCategory extends ConfigCategory {
 
     public void setViewDistance(final int viewDistance) {
         this.viewDistance = viewDistance;
+    }
+
+    public String getDifficulty() {
+        return this.difficulty;
+    }
+
+    public void setDifficulty(Difficulty difficulty) {
+        this.difficulty = difficulty.getId();
     }
 }
