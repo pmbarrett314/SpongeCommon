@@ -46,6 +46,15 @@ public class ResourcePackState extends BasicPacketState {
         final IMixinNetHandlerPlayServer mixinHandler = (IMixinNetHandlerPlayServer) connection;
         final CPacketResourcePackStatus resource = phaseContext.getPacket();
         final ResourcePackStatusEvent.ResourcePackStatus status;
+        if (mixinHandler.getPendingResourcePackQueue().isEmpty()) {
+            // Not sure what to do here. Probably a Sponge bug, although a
+            // malicious or poorly-written client can make this happen.
+            SpongeImpl.getLogger().warn("{} sent resource pack status {}, but no resource packs were in the queue.",
+                    player.getName(), resource.action);
+            SpongeImpl.getLogger().warn("This is probably (but not guaranteed to be) a Sponge bug.");
+            SpongeImpl.getLogger().warn("If this happens repeatedly and with multiple players, report it to the Sponge issue tracker.");
+            return;
+        }
         ResourcePack pack = ((IMixinPacketResourcePackSend) mixinHandler.getPendingResourcePackQueue().peek()).getResourcePack();
         switch (resource.action) {
             case ACCEPTED:

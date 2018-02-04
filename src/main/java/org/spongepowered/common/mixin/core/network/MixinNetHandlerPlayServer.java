@@ -52,12 +52,14 @@ import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.play.INetHandlerPlayServer;
 import net.minecraft.network.play.client.CPacketClickWindow;
 import net.minecraft.network.play.client.CPacketCreativeInventoryAction;
+import net.minecraft.network.play.client.CPacketKeepAlive;
 import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketResourcePackStatus;
 import net.minecraft.network.play.client.CPacketUpdateSign;
 import net.minecraft.network.play.client.CPacketUseEntity;
 import net.minecraft.network.play.client.CPacketVehicleMove;
 import net.minecraft.network.play.server.SPacketEntityAttach;
+import net.minecraft.network.play.server.SPacketKeepAlive;
 import net.minecraft.network.play.server.SPacketMoveVehicle;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketResourcePackSend;
@@ -111,8 +113,8 @@ import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.SpongeImplHooks;
 import org.spongepowered.common.entity.player.tab.SpongeTabList;
 import org.spongepowered.common.event.SpongeCommonEventFactory;
-import org.spongepowered.common.event.tracking.PhaseTracker;
 import org.spongepowered.common.event.tracking.PhaseData;
+import org.spongepowered.common.event.tracking.PhaseTracker;
 import org.spongepowered.common.event.tracking.phase.packet.PacketContext;
 import org.spongepowered.common.event.tracking.phase.packet.PacketPhaseUtil;
 import org.spongepowered.common.event.tracking.phase.tick.PlayerTickContext;
@@ -167,10 +169,16 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
     @Shadow public abstract void setPlayerLocation(double x, double y, double z, float yaw, float pitch);
     @Shadow private static boolean isMovePlayerPacketInvalid(CPacketPlayer packetIn) { return false; } // Shadowed
 
+    @Shadow protected abstract long currentTimeMillis();
+
+    // Appears to be the last keep-alive packet ID. Currently the same as
+    // field_194402_f, but _f is time (which the ID just so happens to match).
+    @Shadow private long field_194404_h;
     private boolean justTeleported = false;
     @Nullable private Location<World> lastMoveLocation = null;
 
     private final Deque<SPacketResourcePackSend> resourcePackRequests = new LinkedList<>();
+    @Nullable private Long resourcePackDelayUntilKeepAlive;
 
     // Store the last block right-clicked
     @Nullable private Item lastItem;
@@ -230,6 +238,23 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
         packet = this.rewritePacket(packet);
         if (packet != null) {
             manager.sendPacket(packet);
+        }
+        if (packet instanceof SPacketResourcePackSend) {
+            // Send a custom keep-alive packet that doesn't match vanilla.
+            long now = this.currentTimeMillis() - 1;
+            if (now == this.field_194404_h) {
+                now--;
+            }
+            this.resourcePackDelayUntilKeepAlive = now;
+            manager.sendPacket(new SPacketKeepAlive(now));
+        }
+    }
+
+    @Inject(method = "processKeepAlive", at = @At("HEAD"), cancellable = true)
+    private void checkSpongeKeepAlive(CPacketKeepAlive packetIn, CallbackInfo ci) {
+        if (this.resourcePackDelayUntilKeepAlive != null && packetIn.getKey() == this.resourcePackDelayUntilKeepAlive) {
+            this.resourcePackDelayUntilKeepAlive = null;
+            ci.cancel();
         }
     }
 
@@ -797,7 +822,7 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
     public void resendLatestResourcePackRequest() {
         // The vanilla client doesn't send any resource pack status if the user presses Escape to close the prompt.
         // If the user moves around, they must have closed the GUI, so resend it to get a real answer.
-        if (!this.resourcePackRequests.isEmpty()) {
+        if (!this.resourcePackRequests.isEmpty() && this.resourcePackDelayUntilKeepAlive == null) {
             this.sendPacket(this.resourcePackRequests.peek());
         }
     }
