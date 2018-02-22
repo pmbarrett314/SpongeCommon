@@ -123,6 +123,7 @@ public class WorldCategory extends ConfigCategory {
     public WorldCategory() {
         this.portalAgents.put("minecraft:default_nether", "DIM-1");
         this.portalAgents.put("minecraft:default_the_end", "DIM1");
+        this.portalAgents.put("minecraft:default_overworld", "world");
 
         try {
             // Enabled by default on SpongeVanilla, disabled by default on SpongeForge.

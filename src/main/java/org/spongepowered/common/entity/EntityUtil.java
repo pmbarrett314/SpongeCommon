@@ -60,11 +60,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.Teleporter;
-import net.minecraft.world.WorldProvider;
-import net.minecraft.world.WorldProviderEnd;
-import net.minecraft.world.WorldProviderHell;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.*;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.block.BlockSnapshot;
 import org.spongepowered.api.data.type.Profession;
@@ -356,6 +352,8 @@ public final class EntityUtil {
                 worldName = activeConfig.getConfig().getWorld().getPortalAgents().get("minecraft:default_nether");
             } else if (toWorld.provider instanceof WorldProviderEnd) {
                 worldName = activeConfig.getConfig().getWorld().getPortalAgents().get("minecraft:default_the_end");
+            } else if (toWorld.provider instanceof WorldProviderSurface) {
+                worldName = activeConfig.getConfig().getWorld().getPortalAgents().get("minecraft:default_overworld");
             }
         } else { // custom
             worldName = activeConfig.getConfig().getWorld().getPortalAgents().get("minecraft:" + teleporter.getClass().getSimpleName());

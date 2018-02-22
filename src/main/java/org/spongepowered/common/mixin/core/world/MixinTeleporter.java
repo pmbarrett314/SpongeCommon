@@ -36,6 +36,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.DimensionType;
 import net.minecraft.world.Teleporter;
 import net.minecraft.world.WorldServer;
 import org.spongepowered.api.event.entity.MoveEntityEvent;
@@ -102,7 +103,7 @@ public class MixinTeleporter implements PortalAgent, IMixinTeleporter {
     public void placeInPortal(Entity entityIn, float rotationYaw) {
         Location<World> targetLocation = ((org.spongepowered.api.entity.Entity) entityIn).getLocation();
         // Sponge - remove hardcode to support any world using end or nether providers
-        if (this.createNetherPortal) {
+        if(this.world.provider.getDimensionType()== DimensionType.NETHER||this.world.provider.getDimensionType()== DimensionType.OVERWORLD) {
             if (!this.placeInExistingPortal(entityIn, rotationYaw)) {
                 this.makePortal(entityIn);
                 this.placeInExistingPortal(entityIn, rotationYaw);
